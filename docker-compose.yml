@@ -9,33 +9,45 @@ services:
       volumes:
         - ${APPLICATION}:/var/www/
 
-### Workspace Utilities Container ###########################
+### Applications Code Container #############################
+
+    app:
+      image: tianon/true
+      depends_on:
+         - nginx
+         - redis
+         - echo
+         - mysql
+         - phpmyadmin
+         - redis-commander
+
+### Cli Utilities Container ###########################
 
     cli:
       build:
         context: ./workspace
         args:
-          - INSTALL_XDEBUG=${WORKSPACE_INSTALL_XDEBUG}
+          - INSTALL_XDEBUG=${CLI_INSTALL_XDEBUG}
           - INSTALL_BLACKFIRE=${INSTALL_BLACKFIRE}
-          - INSTALL_SOAP=${WORKSPACE_INSTALL_SOAP}
-          - INSTALL_MONGO=${WORKSPACE_INSTALL_MONGO}
-          - INSTALL_MSSQL=${WORKSPACE_INSTALL_MSSQL}
-          - INSTALL_NODE=${WORKSPACE_INSTALL_NODE}
-          - INSTALL_YARN=${WORKSPACE_INSTALL_YARN}
-          - INSTALL_DRUSH=${WORKSPACE_INSTALL_DRUSH}
-          - INSTALL_AEROSPIKE=${WORKSPACE_INSTALL_AEROSPIKE}
-          - INSTALL_V8JS=${WORKSPACE_INSTALL_V8JS}
-          - COMPOSER_GLOBAL_INSTALL=${WORKSPACE_COMPOSER_GLOBAL_INSTALL}
-          - INSTALL_WORKSPACE_SSH=${WORKSPACE_INSTALL_WORKSPACE_SSH}
-          - INSTALL_LARAVEL_ENVOY=${WORKSPACE_INSTALL_LARAVEL_ENVOY}
-          - INSTALL_DEPLOYER=${WORKSPACE_INSTALL_DEPLOYER}
-          - INSTALL_LINUXBREW=${WORKSPACE_INSTALL_LINUXBREW}
-          - INSTALL_MC=${WORKSPACE_INSTALL_MC}
-          - PUID=${WORKSPACE_PUID}
-          - PGID=${WORKSPACE_PGID}
-          - NODE_VERSION=${WORKSPACE_NODE_VERSION}
-          - YARN_VERSION=${WORKSPACE_YARN_VERSION}
-          - TZ=${WORKSPACE_TIMEZONE}
+          - INSTALL_SOAP=${CLI_INSTALL_SOAP}
+          - INSTALL_MONGO=${CLI_INSTALL_MONGO}
+          - INSTALL_MSSQL=${CLI_INSTALL_MSSQL}
+          - INSTALL_NODE=${CLI_INSTALL_NODE}
+          - INSTALL_YARN=${CLI_INSTALL_YARN}
+          - INSTALL_DRUSH=${CLI_INSTALL_DRUSH}
+          - INSTALL_AEROSPIKE=${CLI_INSTALL_AEROSPIKE}
+          - INSTALL_V8JS=${CLI_INSTALL_V8JS}
+          - COMPOSER_GLOBAL_INSTALL=${CLI_COMPOSER_GLOBAL_INSTALL}
+          - INSTALL_CLI_SSH=${CLI_INSTALL_CLI_SSH}
+          - INSTALL_LARAVEL_ENVOY=${CLI_INSTALL_LARAVEL_ENVOY}
+          - INSTALL_DEPLOYER=${CLI_INSTALL_DEPLOYER}
+          - INSTALL_LINUXBREW=${CLI_INSTALL_LINUXBREW}
+          - INSTALL_MC=${CLI_INSTALL_MC}
+          - PUID=${CLI_PUID}
+          - PGID=${CLI_PGID}
+          - NODE_VERSION=${CLI_NODE_VERSION}
+          - YARN_VERSION=${CLI_YARN_VERSION}
+          - TZ=${CLI_TIMEZONE}
           - BLACKFIRE_CLIENT_ID=${BLACKFIRE_CLIENT_ID}
           - BLACKFIRE_CLIENT_TOKEN=${BLACKFIRE_CLIENT_TOKEN}
         dockerfile: "Dockerfile-${PHP_VERSION}"
@@ -93,6 +105,19 @@ services:
       depends_on:
         - cli
 
+### Laravel Echo #####################################
+
+    echo:
+      build:
+        context: ./laravel-echo
+      volumes_from:
+        - applications
+      ports:
+        - 6001
+      environment:
+        - VIRTUAL_HOST=${ECHO_DOMAIN}
+
+
 ### Nginx Server Container ##################################
 
     nginx:
@@ -109,7 +134,7 @@ services:
         - 80
         - 443
       environment:
-        VIRTUAL_HOST: ${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${MAIN_DOMAIN}
       depends_on:
         - php-fpm
 
@@ -139,7 +164,7 @@ services:
         - 80
         - 443
       environment:
-        VIRTUAL_HOST: ${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${MAIN_DOMAIN}
       depends_on:
         - php-fpm
 
@@ -289,6 +314,17 @@ services:
       ports:
         - 6379
 
+    redis-commander:
+      build: ./redis-commander
+      environment:
+        - VIRTUAL_HOST=${QUEUE_DOMAIN}
+      entrypoint: redis-commander --redis-host redis
+      ports:
+          - 8081
+      links:
+          - redis
+
+
 ### Aerospike c Container ###################################
 
     aerospike:
@@ -346,7 +382,7 @@ services:
       ports:
         - 2080
       environment:
-        VIRTUAL_HOST: queue.${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${QUEUE_DOMAIN}
       depends_on:
         - beanstalkd
 
@@ -373,10 +409,13 @@ services:
       build: ./phpmyadmin
       environment:
         - PMA_ARBITRARY=1
+        - PMA_HOST=${PMA_DB_ENGINE}
+        - PMA_USER=${PMA_USER}
+        - PMA_PASSWORD=${PMA_PASSWORD}
         - MYSQL_USER=${PMA_USER}
         - MYSQL_PASSWORD=${PMA_PASSWORD}
         - MYSQL_ROOT_PASSWORD=${PMA_ROOT_PASSWORD}
-        - VIRTUAL_HOST=db.${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${DB_DOMAIN}
       ports:
         - 80
       depends_on:
@@ -389,7 +428,7 @@ services:
       ports:
         - 8080
       environment:
-        VIRTUAL_HOST: db.${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${DB_DOMAIN}
       depends_on:
         - php-fpm
 
@@ -400,7 +439,7 @@ services:
       ports:
         - 5050
       environment:
-        VIRTUAL_HOST: db.${MAIN_DOMAIN}
+        - VIRTUAL_HOST=${DB_DOMAIN}
       depends_on:
         - postgres
 
@@ -437,8 +476,8 @@ services:
         - 1025
         - 8025
       environment:
-        VIRTUAL_HOST: mail.${MAIN_DOMAIN}
-        VIRTUAL_PORT: 8025
+        - VIRTUAL_HOST=${MAIL_DOMAIN}
+        - VIRTUAL_PORT=8025
 
 
 ### Selenium Container ########################################
@@ -454,8 +493,8 @@ services:
     jenkins:
       build: ./jenkins
       environment:
-        JAVA_OPTS: "-Djava.awt.headless=true"
-        VIRTUAL_HOST: jenkins.${MAIN_DOMAIN}
+        - JAVA_OPTS="-Djava.awt.headless=true"
+        - VIRTUAL_HOST=${JENKINS_DOMAIN}
       ports:
         - 50000
         - 8080
