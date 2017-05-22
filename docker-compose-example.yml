@@ -15,11 +15,9 @@ services:
       image: tianon/true
       depends_on:
          - nginx
-         - redis
-         - echo
+         - mailhog
          - mysql
          - phpmyadmin
-         - redis-commander
 
 ### Cli Utilities Container ###########################
 

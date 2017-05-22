@@ -1,14 +1,14 @@
-
+COMPOSE_PROJECT_NAME=ralphowino
 APPLICATION=../code
 DATA_SAVE_PATH=../data
 PHP_VERSION=71
 PHP_INTERPRETER=php-fpm
-MAIN_DOMAIN=laradock.dev
-QUEUE_DOMAIN=queue.laradock.dev
-DB_DOMAIN=db.laradock.dev
-MAIL_DOMAIN=mail.laradock.dev
-JENKINS_DOMAIN=jenkins.laradock.dev
-ECHO_DOMAIN=echo.laradock.dev
+MAIN_DOMAIN=ralphowino.dev
+QUEUE_DOMAIN=queue.ralphowino.dev
+DB_DOMAIN=db.ralphowino.dev
+MAIL_DOMAIN=mail.ralphowino.dev
+JENKINS_DOMAIN=jenkins.ralphowino.dev
+ECHO_DOMAIN=echo.ralphowino.dev
 
 
 
@@ -96,7 +96,7 @@ BEANSTALKD_CONSOLE_CONTAINER_NAME=beanstalkd-console
 
 
 PMA_DB_ENGINE=mysql
-PMA_USER=default
+PMA_USER=homestead
 PMA_PASSWORD=secret
 PMA_ROOT_PASSWORD=secret
 
