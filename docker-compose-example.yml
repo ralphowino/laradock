@@ -9,7 +9,14 @@ services:
       volumes:
         - ${APPLICATION}:/var/www
 
-### Workspace Utilities Container ###########################
+### Applications Code Container #############################
+
+    app:
+      image: tianon/true
+      depends_on:
+         - nginx
+
+### Cli Utilities Container ###########################
 
     cli:
       build:
@@ -108,6 +115,19 @@ services:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
         - backend
+
+### Laravel Echo #####################################
+
+    echo:
+      build:
+        context: ./laravel-echo
+      volumes_from:
+        - applications
+      ports:
+        - 6001
+      environment:
+        - VIRTUAL_HOST=${ECHO_DOMAIN}
+
 
 ### NGINX Server Container ##################################
 
@@ -346,6 +366,17 @@ services:
       networks:
         - backend
 
+    redis-commander:
+      build: ./redis-commander
+      environment:
+        - VIRTUAL_HOST=${QUEUE_DOMAIN}
+      entrypoint: redis-commander --redis-host redis
+      ports:
+          - 8081
+      links:
+          - redis
+
+
 ### Aerospike c Container ###################################
 
     aerospike:
@@ -440,6 +471,9 @@ services:
       build: ./phpmyadmin
       environment:
         - PMA_ARBITRARY=1
+        - PMA_HOST=${PMA_DB_ENGINE}
+        - PMA_USER=${PMA_USER}
+        - PMA_PASSWORD=${PMA_PASSWORD}
         - MYSQL_USER=${PMA_USER}
         - MYSQL_PASSWORD=${PMA_PASSWORD}
         - MYSQL_ROOT_PASSWORD=${PMA_ROOT_PASSWORD}

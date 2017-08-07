@@ -1,5 +1,4 @@
 COMPOSE_PROJECT_NAME=ralphowino
-
 APPLICATION=../code
 
 DATA_SAVE_PATH=../data
@@ -11,6 +10,7 @@ PHP_VERSION=71
 PHP_INTERPRETER=php-fpm
 
 MAIN_DOMAIN=ralphowino.dev
+
 
 ### WORKSPACE ##########################################################################################################
 
@@ -62,23 +62,23 @@ PHP_FPM_INSTALL_IMAGE_OPTIMIZERS=false
 
 ### NGINX ##############################################################################################################
 
-NGINX_HOST_LOG_PATH=./logs/nginx/
-NGINX_SITES_PATH=./nginx/sites/
+NGINX_HOST_LOG_PATH=../logs/nginx/
+NGINX_SITES_PATH=../data/nginx/sites/
 NGINX_PHP_UPSTREAM_CONTAINER=php-fpm
 NGINX_PHP_UPSTREAM_PORT=9000
 
 ### APACHE #############################################################################################################
 
-APACHE_HOST_LOG_PATH=./logs/apache2
-APACHE_SITES_PATH=./apache2/sites
+APACHE_HOST_LOG_PATH=../logs/apache2
+APACHE_SITES_PATH=../data/apache2/sites
 APACHE_PHP_UPSTREAM_CONTAINER=php-fpm
 APACHE_PHP_UPSTREAM_PORT=9000
 
 ### MYSQL ##############################################################################################################
 
 MYSQL_VERSION=8.0
-MYSQL_DATABASE=default
-MYSQL_USER=default
+MYSQL_DATABASE=homestead
+MYSQL_USER=homestead
 MYSQL_PASSWORD=secret
 MYSQL_ROOT_PASSWORD=root
 MYSQL_ENTRYPOINT_INITDB=./mysql/docker-entrypoint-initdb.d
@@ -147,12 +147,9 @@ ADM_INSTALL_MSSQL=false
 # Accepted values: mariadb - mysql
 
 PMA_DB_ENGINE=mysql
-
-# Credentials/Port:
-
-PMA_USER=default
+PMA_USER=homestead
 PMA_PASSWORD=secret
-PMA_ROOT_PASSWORD=secret
+PMA_ROOT_PASSWORD=root
 
 ### VARNISH ############################################################################################################
 

@@ -3,4 +3,5 @@
 /data
 .env
 /.project
+docker-compose.yml
 .docker-sync
