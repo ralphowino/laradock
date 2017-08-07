@@ -117,13 +117,17 @@ COPY ./aliases.sh /home/laradock/aliases.sh
 RUN echo "" >> ~/.bashrc && \
     echo "# Load Custom Aliases" >> ~/.bashrc && \
     echo "source /home/laradock/aliases.sh" >> ~/.bashrc && \
-    echo "" >> ~/.bashrc
+	echo "" >> ~/.bashrc && \
+	sed -i 's/\r//' /home/laradock/aliases.sh && \
+	sed -i 's/^#! \/bin\/sh/#! \/bin\/bash/' /home/laradock/aliases.sh
 
 USER root
 RUN echo "" >> ~/.bashrc && \
     echo "# Load Custom Aliases" >> ~/.bashrc && \
     echo "source /home/laradock/aliases.sh" >> ~/.bashrc && \
-    echo "" >> ~/.bashrc
+	echo "" >> ~/.bashrc && \
+	sed -i 's/\r//' /home/laradock/aliases.sh && \
+	sed -i 's/^#! \/bin\/sh/#! \/bin\/bash/' /home/laradock/aliases.sh
 
 #####################################
 # xDebug:
@@ -133,7 +137,7 @@ ARG INSTALL_XDEBUG=false
 RUN if [ ${INSTALL_XDEBUG} = true ]; then \
     # Load the xdebug extension only with phpunit commands
     apt-get install -y --force-yes php5.6-xdebug && \
-    sed -i 's/^/;/g' /etc/php/5.6/cli/conf.d/20-xdebug.ini && \
+    sed -i 's/^;//g' /etc/php/5.6/cli/conf.d/20-xdebug.ini && \
     echo "alias phpunit='php -dzend_extension=xdebug.so /var/www/vendor/bin/phpunit'" >> ~/.bashrc \
 ;fi
 # ADD for REMOTE debugging
@@ -186,7 +190,8 @@ ENV INSTALL_MONGO ${INSTALL_MONGO}
 RUN if [ ${INSTALL_MONGO} = true ]; then \
     # Install the mongodb extension
     pecl install mongodb && \
-    echo "extension=mongodb.so" >> /etc/php/5.6/cli/conf.d/30-mongodb.ini \
+    echo "extension=mongodb.so" >> /etc/php/5.6/mods-available/mongodb.ini && \
+    ln -s /etc/php/5.6/mods-available/mongodb.ini /etc/php/5.6/cli/conf.d/30-mongodb.ini \
 ;fi
 
 #####################################
@@ -197,6 +202,8 @@ ENV DRUSH_VERSION 8.1.2
 ARG INSTALL_DRUSH=false
 ENV INSTALL_DRUSH ${INSTALL_DRUSH}
 RUN if [ ${INSTALL_DRUSH} = true ]; then \
+    apt-get update -yqq && \
+    apt-get -y install mysql-client && \
     # Install Drush 8 with the phar file.
     curl -fsSL -o /usr/local/bin/drush https://github.com/drush-ops/drush/releases/download/$DRUSH_VERSION/drush.phar | bash && \
     chmod +x /usr/local/bin/drush && \
@@ -334,6 +341,23 @@ RUN if [ ${INSTALL_LARAVEL_ENVOY} = true ]; then \
 ;fi
 
 #####################################
+# Laravel Installer:
+#####################################
+USER root
+
+ARG INSTALL_LARAVEL_INSTALLER=true
+ENV INSTALL_LARAVEL_INSTALLER ${INSTALL_LARAVEL_INSTALLER}
+
+RUN if [ ${INSTALL_LARAVEL_INSTALLER} = true ]; then \
+    # Install the Laravel Installer
+    echo "" >> ~/.bashrc && \
+    echo 'export PATH="~/.composer/vendor/bin:$PATH"' >> ~/.bashrc \
+    && composer global require "laravel/installer" \
+;fi
+
+USER laradock
+
+#####################################
 # Deployer:
 #####################################
 USER laradock
@@ -379,6 +403,17 @@ RUN if [ ${INSTALL_LINUXBREW} = true ]; then \
 ;fi
 
 #####################################
+# SQL SERVER:
+#####################################
+ARG INSTALL_MSSQL=false
+ENV INSTALL_MSSQL ${INSTALL_MSSQL}
+
+RUN if [ ${INSTALL_MSSQL} = true ]; then \
+    apt-get -y install php5.6-sybase freetds-bin freetds-common libsybdb5 \
+    && echo "extension=pdo_dblib.so" > /etc/php/5.6/cli/conf.d/20-pdo_dblib.ini \
+;fi
+
+#####################################
 # Minio:
 #####################################
 USER root
@@ -390,6 +425,19 @@ COPY mc/config.json /root/.mc/config.json
 RUN if [ ${INSTALL_MC} = true ]; then\
     curl -fsSL -o /usr/local/bin/mc https://dl.minio.io/client/mc/release/linux-amd64/mc && \
     chmod +x /usr/local/bin/mc \
+;fi
+
+#####################################
+# Image optimizers:
+#####################################
+USER root
+ARG INSTALL_IMAGE_OPTIMIZERS=false
+ENV INSTALL_IMAGE_OPTIMIZERS ${INSTALL_IMAGE_OPTIMIZERS}
+RUN if [ ${INSTALL_IMAGE_OPTIMIZERS} = true ]; then \
+    apt-get install -y --force-yes jpegoptim optipng pngquant gifsicle && \
+    if [ ${INSTALL_NODE} = true ]; then \
+        . ~/.bashrc && npm install -g svgo \
+    ;fi\
 ;fi
 
 USER laradock

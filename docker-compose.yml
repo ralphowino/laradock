@@ -7,7 +7,7 @@ services:
     applications:
       image: tianon/true
       volumes:
-        - ${APPLICATION}:/var/www/
+        - ${APPLICATION}:/var/www
 
 ### Workspace Utilities Container ###########################
 
@@ -28,9 +28,13 @@ services:
           - COMPOSER_GLOBAL_INSTALL=${WORKSPACE_COMPOSER_GLOBAL_INSTALL}
           - INSTALL_WORKSPACE_SSH=${WORKSPACE_INSTALL_WORKSPACE_SSH}
           - INSTALL_LARAVEL_ENVOY=${WORKSPACE_INSTALL_LARAVEL_ENVOY}
+          - INSTALL_LARAVEL_INSTALLER=${WORKSPACE_INSTALL_LARAVEL_INSTALLER}
           - INSTALL_DEPLOYER=${WORKSPACE_INSTALL_DEPLOYER}
           - INSTALL_LINUXBREW=${WORKSPACE_INSTALL_LINUXBREW}
           - INSTALL_MC=${WORKSPACE_INSTALL_MC}
+          - INSTALL_SYMFONY=${WORKSPACE_INSTALL_SYMFONY}
+          - INSTALL_PYTHON=${WORKSPACE_INSTALL_PYTHON}
+          - INSTALL_IMAGE_OPTIMIZERS=${WORKSPACE_INSTALL_IMAGE_OPTIMIZERS}
           - PUID=${WORKSPACE_PUID}
           - PGID=${WORKSPACE_PGID}
           - NODE_VERSION=${WORKSPACE_NODE_VERSION}
@@ -46,6 +50,9 @@ services:
       ports:
         - 22
       tty: true
+      networks:
+        - frontend
+        - backend
 
 ### PHP-FPM Container #######################################
 
@@ -69,6 +76,9 @@ services:
           - INSTALL_TOKENIZER=${PHP_FPM_INSTALL_TOKENIZER}
           - INSTALL_INTL=${PHP_FPM_INSTALL_INTL}
           - INSTALL_GHOSTSCRIPT=${PHP_FPM_INSTALL_GHOSTSCRIPT}
+          - INSTALL_LDAP=${PHP_FPM_INSTALL_LDAP}
+          - INSTALL_SWOOLE=${PHP_FPM_INSTALL_SWOOLE}
+          - INSTALL_IMAGE_OPTIMIZERS=${PHP_FPM_INSTALL_IMAGE_OPTIMIZERS}
         dockerfile: "Dockerfile-${PHP_VERSION}"
       volumes_from:
         - applications
@@ -82,24 +92,31 @@ services:
         - "dockerhost:${DOCKER_HOST_IP}"
       environment:
         - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+      networks:
+        - backend
 
 ### PHP Worker Container #####################################
 
-    worker:
+    php-worker:
       build:
         context: ./php-worker
       volumes_from:
         - applications
       depends_on:
         - cli
+      extra_hosts:
+        - "dockerhost:${DOCKER_HOST_IP}"
+      networks:
+        - backend
 
-### Nginx Server Container ##################################
+### NGINX Server Container ##################################
 
     nginx:
       build:
         context: ./nginx
         args:
-          - PHP_UPSTREAM=php-fpm
+          - PHP_UPSTREAM_CONTAINER=${NGINX_PHP_UPSTREAM_CONTAINER}
+          - PHP_UPSTREAM_PORT=${NGINX_PHP_UPSTREAM_PORT}
       volumes_from:
         - applications
       volumes:
@@ -112,6 +129,9 @@ services:
         VIRTUAL_HOST: ${MAIN_DOMAIN}
       depends_on:
         - php-fpm
+      networks:
+        - frontend
+        - backend
 
 ### Blackfire Container #################################
 
@@ -122,6 +142,8 @@ services:
         - BLACKFIRE_SERVER_TOKEN=${BLACKFIRE_SERVER_TOKEN}
       depends_on:
         - php-fpm
+      networks:
+        - backend
 
 ### Apache Server Container #################################
 
@@ -129,12 +151,13 @@ services:
       build:
         context: ./apache2
         args:
-          - PHP_SOCKET=${PHP_SOCKET}
+          - PHP_UPSTREAM_CONTAINER=${APACHE_PHP_UPSTREAM_CONTAINER}
+          - PHP_UPSTREAM_PORT=${APACHE_PHP_UPSTREAM_PORT}
       volumes_from:
         - applications
       volumes:
         - ${APACHE_HOST_LOG_PATH}:/var/log/apache2
-        - ./apache2/sites:/etc/apache2/sites-available
+        - ${APACHE_SITES_PATH}:/etc/apache2/sites-available
       ports:
         - 80
         - 443
@@ -142,6 +165,9 @@ services:
         VIRTUAL_HOST: ${MAIN_DOMAIN}
       depends_on:
         - php-fpm
+      networks:
+        - frontend
+        - backend
 
 ### HHVM Container ##########################################
 
@@ -153,6 +179,9 @@ services:
         - 9000
       depends_on:
         - cli
+      networks:
+        - frontend
+        - backend
 
 ### Minio Container #########################################
 
@@ -165,21 +194,29 @@ services:
       environment:
         - MINIO_ACCESS_KEY=access
         - MINIO_SECRET_KEY=secretkey
+      networks:
+        - frontend
 
 ### MySQL Container #########################################
 
     mysql:
       build:
         context: ./mysql
+        args:
+          - MYSQL_VERSION=${MYSQL_VERSION}
       environment:
         - MYSQL_DATABASE=${MYSQL_DATABASE}
         - MYSQL_USER=${MYSQL_USER}
         - MYSQL_PASSWORD=${MYSQL_PASSWORD}
         - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        - TZ=${WORKSPACE_TIMEZONE}
       volumes:
         - ${DATA_SAVE_PATH}/mysql:/var/lib/mysql
+        - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - 3306
+      networks:
+        - backend
 
 ### Percona Container #########################################
 
@@ -192,9 +229,12 @@ services:
         - MYSQL_PASSWORD=${PERCONA_PASSWORD}
         - MYSQL_ROOT_PASSWORD=${PERCONA_ROOT_PASSWORD}
       volumes:
-        - percona:/var/lib/mysql
+        - ${DATA_SAVE_PATH}/percona:/var/lib/mysql
+        - ${PERCONA_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - 3306
+      networks:
+        - backend
 
 ### MSSQL Container #########################################
 
@@ -209,6 +249,8 @@ services:
         - ${DATA_SAVE_PATH}/mssql:/var/opt/mssql
       ports:
         - 1433
+      networks:
+        - backend
 
 ### MariaDB Container #######################################
 
@@ -216,6 +258,7 @@ services:
       build: ./mariadb
       volumes:
         - ${DATA_SAVE_PATH}/mariadb:/var/lib/mysql
+        - ${MARIADB_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - 3306
       environment:
@@ -223,6 +266,8 @@ services:
         - MYSQL_USER=${MARIADB_USER}
         - MYSQL_PASSWORD=${MARIADB_PASSWORD}
         - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      networks:
+        - backend
 
 ### PostgreSQL Container ####################################
 
@@ -236,6 +281,8 @@ services:
         - POSTGRES_DB=${POSTGRES_DB}
         - POSTGRES_USER=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      networks:
+        - backend
 
 ### PostgreSQL PostGis Container ############################
 
@@ -249,6 +296,8 @@ services:
         - POSTGRES_DB=${POSTGRES_DB}
         - POSTGRES_USER=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      networks:
+        - backend
 
 ### Neo4j Container #########################################
 
@@ -261,6 +310,8 @@ services:
         - NEO4J_AUTH=default:secret
       volumes:
         - ${DATA_SAVE_PATH}/neo4j:/var/lib/neo4j/data
+      networks:
+        - backend
 
 ### MongoDB Container #######################################
 
@@ -270,6 +321,8 @@ services:
         - 27017
       volumes:
         - ${DATA_SAVE_PATH}/mongo:/data/db
+      networks:
+        - backend
 
 ### RethinkDB Container #######################################
 
@@ -279,6 +332,8 @@ services:
         - 8080
       volumes:
         - ${DATA_SAVE_PATH}/rethinkdb:/data/rethinkdb_data
+      networks:
+        - backend
 
 ### Redis Container #########################################
 
@@ -288,6 +343,8 @@ services:
         - ${DATA_SAVE_PATH}/redis:/data
       ports:
         - 6379
+      networks:
+        - backend
 
 ### Aerospike c Container ###################################
 
@@ -313,6 +370,8 @@ services:
         - 11211
       depends_on:
         - php-fpm
+      networks:
+        - backend
 
 ### Beanstalkd Container ####################################
 
@@ -323,6 +382,8 @@ services:
       privileged: true
       depends_on:
         - php-fpm
+      networks:
+        - backend
 
 ### RabbitMQ Container ######################################
 
@@ -338,6 +399,8 @@ services:
         - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
       depends_on:
         - php-fpm
+      networks:
+        - backend
 
 ### Beanstalkd Console Container ############################
 
@@ -349,6 +412,8 @@ services:
         VIRTUAL_HOST: queue.${MAIN_DOMAIN}
       depends_on:
         - beanstalkd
+      networks:
+        - backend
 
 ### Caddy Server Container ##################################
 
@@ -357,15 +422,17 @@ services:
       ports:
         - 80
         - 443
-        - 2015
       volumes_from:
         - applications
       volumes:
-        - ./caddy/Caddyfile:/etc/Caddyfile
-        - ./logs/caddy:/var/log/caddy
-        - caddy:/root/.caddy
+        - ${CADDY_CUSTOM_CADDYFILE}:/etc/Caddyfile
+        - ${CADDY_HOST_LOG_PATH}:/var/log/caddy
+        - ${DATA_SAVE_PATH}:/root/.caddy
       depends_on:
         - php-fpm
+      networks:
+        - frontend
+        - backend
 
 ### phpMyAdmin Container ####################################
 
@@ -381,17 +448,26 @@ services:
         - 80
       depends_on:
         - "${PMA_DB_ENGINE}"
+      networks:
+        - frontend
+        - backend
 
 ### Adminer Container ####################################
 
     adminer:
-      build: ./adminer
+      build:
+        context: ./adminer
+        args:
+          - INSTALL_MSSQL=${ADM_INSTALL_MSSQL}
       ports:
         - 8080
       environment:
         VIRTUAL_HOST: db.${MAIN_DOMAIN}
       depends_on:
         - php-fpm
+      networks:
+        - frontend
+        - backend
 
 ### pgAdmin Container #######################################
 
@@ -403,6 +479,9 @@ services:
         VIRTUAL_HOST: db.${MAIN_DOMAIN}
       depends_on:
         - postgres
+      networks:
+        - frontend
+        - backend
 
 ### ElasticSearch Container #################################
 
@@ -411,11 +490,36 @@ services:
       volumes:
         - elasticsearch-data:/usr/share/elasticsearch/data
         - elasticsearch-plugins:/usr/share/elasticsearch/plugins
+      environment:
+        - cluster.name=laradock-cluster
+        - bootstrap.memory_lock=true
+        - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+      mem_limit: 512m
       ports:
         - 9200
         - 9300
       depends_on:
         - php-fpm
+      networks:
+        - frontend
+        - backend
+
+
+### Kibana Container #######################################
+
+    kibana:
+      build: ./kibana
+      ports:
+        - "${KIBANA_HTTP_PORT}:5601"
+      depends_on:
+        - elasticsearch
+      networks:
+        - frontend
+        - backend
 
 ### Certbot Container ##################################
 
@@ -428,6 +532,8 @@ services:
       environment:
         - CN="fake.domain.com"
         - EMAIL="fake.email@gmail.com"
+      networks:
+        - frontend
 
 ### Mailhog Container #########################################
 
@@ -439,7 +545,9 @@ services:
       environment:
         VIRTUAL_HOST: mail.${MAIN_DOMAIN}
         VIRTUAL_PORT: 8025
-
+      networks:
+        - frontend
+        - backend
 
 ### Selenium Container ########################################
 
@@ -449,8 +557,61 @@ services:
         - 4444
       volumes:
         - /dev/shm:/dev/shm
+      networks:
+        - frontend
+
+### Varnish Proxy 1 ##########################################
+
+    proxy:
+      build: ./varnish
+      expose:
+        - ${VARNISH_PORT}
+      environment:
+        - VARNISH_CONFIG=${VARNISH_CONFIG}
+        - CACHE_SIZE=${VARNISH_PROXY1_CACHE_SIZE}
+        - VARNISHD_PARAMS=${VARNISHD_PARAMS}
+        - VARNISH_PORT=${VARNISH_PORT}
+        - BACKEND_HOST=${VARNISH_PROXY1_BACKEND_HOST}
+        - BACKEND_PORT=${VARNISH_BACKEND_PORT}
+        - VARNISH_SERVER=${VARNISH_PROXY1_SERVER}
+      links:
+        - workspace
+      networks:
+        - frontend
+
+### Varnish Proxy 2 ##########################################
+
+    proxy2:
+      build: ./varnish
+      expose:
+        - ${VARNISH_PORT}
+      environment:
+        - VARNISH_CONFIG=${VARNISH_CONFIG}
+        - CACHE_SIZE=${VARNISH_PROXY2_CACHE_SIZE}
+        - VARNISHD_PARAMS=${VARNISHD_PARAMS}
+        - VARNISH_PORT=${VARNISH_PORT}
+        - BACKEND_HOST=${VARNISH_PROXY2_BACKEND_HOST}
+        - BACKEND_PORT=${VARNISH_BACKEND_PORT}
+        - VARNISH_SERVER=${VARNISH_PROXY2_SERVER}
+      links:
+        - workspace
+      networks:
+        - frontend
+
+### Balancer Haproxy ##########################################
+
+    balancer:
+      build: ./haproxy
+      ports:
+        - "${HAPROXY_HOST_HTTP_PORT}:8085"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      links:
+        - proxy
+        - proxy2
 
 ### Jenkins ###################################################
+
     jenkins:
       build: ./jenkins
       environment:
@@ -463,14 +624,32 @@ services:
       volumes:
         - ${JENKINS_HOME}:/var/jenkins_home
         - /var/run/docker.sock:/var/run/docker.sock
+      networks:
+        - frontend
+        - backend
 
+### Laravel Echo Server #######################################
+    laravel-echo-server:
+      build:
+        context: ./laravel-echo-server
+      volumes:
+        - ./laravel-echo-server/laravel-echo-server.json:/app/laravel-echo-server.json:ro
+      ports:
+        - "${LARAVEL_ECHO_SERVER_PORT}:6001"
+      links:
+        - redis
+      networks:
+        - frontend
+        - backend
 
 ### Networks Setup ############################################
-networks:
-  default:
-    external:
-      name: nginxproxy_default
 
+networks:
+  frontend:
+    external:
+       name: nginxproxy_default
+  backend:
+    driver: "bridge"
 
 ### Volumes Setup #############################################
 
