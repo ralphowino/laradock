@@ -116,18 +116,6 @@ services:
       networks:
         - backend
 
-### Laravel Echo #####################################
-
-    echo:
-      build:
-        context: ./laravel-echo
-      volumes_from:
-        - applications
-      ports:
-        - 6001
-      environment:
-        - VIRTUAL_HOST=${ECHO_DOMAIN}
-
 
 ### NGINX Server Container ##################################
 
@@ -663,11 +651,11 @@ services:
         - backend
 
 ### Laravel Echo Server #######################################
-    laravel-echo-server:
+    echo:
       build:
         context: ./laravel-echo-server
       volumes:
-        - ./laravel-echo-server/laravel-echo-server.json:/app/laravel-echo-server.json:ro
+        - ${ECHO_PATH}/laravel-echo-server.json:/app/laravel-echo-server.json:ro
       ports:
         - 6001
       links:
@@ -675,6 +663,8 @@ services:
       networks:
         - frontend
         - backend
+      environment:
+        - VIRTUAL_HOST: echo.${MAIN_DOMAIN}
 
 ### Networks Setup ############################################
 

@@ -201,9 +201,12 @@ BLACKFIRE_SERVER_TOKEN=<server_token>
 
 ### CADDY ##############################################################################################################
 
-CADDY_HOST_LOG_PATH=./logs/caddy
-CADDY_CUSTOM_CADDYFILE=./caddy/Caddyfile
+CADDY_HOST_LOG_PATH=../logs/caddy
+CADDY_CUSTOM_CADDYFILE=../data/caddy/Caddyfile
 
+### ECHO
+
+ECHO_PATH=../code/
 
 ### DOCKER-SYNC ################################################################################################
 
