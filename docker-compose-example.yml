@@ -664,7 +664,7 @@ services:
         - frontend
         - backend
       environment:
-        - VIRTUAL_HOST: echo.${MAIN_DOMAIN}
+        VIRTUAL_HOST: echo.${MAIN_DOMAIN}
 
 ### Networks Setup ############################################
 
