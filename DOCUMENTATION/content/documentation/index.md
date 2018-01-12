@@ -5,6 +5,8 @@ weight: 3
 ---
 
 
+
+
 <a name="List-current-running-Containers"></a>
 ## List current running Containers
 ```bash
@@ -154,87 +156,7 @@ You might use the `--no-cache` option if you want full rebuilding (`docker-compo
 
 
 <br>
-<a name="Docker-Sync"></a>
-
-## Speed up with docker-sync
-
-Docker on the Mac [is slow](https://github.com/docker/for-mac/issues/77), at the time of writing. Especially for larger projects, this can be a problem. The problem is [older than March 2016](https://forums.docker.com/t/file-access-in-mounted-volumes-extremely-slow-cpu-bound/8076) - as it's a such a long-running issue, we're including it in the docs here.
-
-In simple terms, docker-sync creates a docker container with a copy of all the application files that can be accessed very quickly from the other containers. 
-On the other hand, docker-sync runs a process on the host machine that continuously tracks and updates files changes from the host to this intermediate container.
-
-Out of the box, it comes pre-configured for OS X, but using it on Windows is very easy to set-up by modifying the `DOCKER_SYNC_STRATEGY` on the `.env`
-
-#### Usage
-
-Laradock comes with `sync.sh`, an optional bash script, that automates installing, running and stopping docker-sync.  Note that to run the bash script you may need to change the permissions `chmod 755 sync.sh`
-
-1) Configure your Laradock environment as you would normally do and test your application to make sure that your sites are running correctly.
-
-2) Make sure to set `DOCKER_SYNC_STRATEGY` on the `.env`. Read the [syncing strategies](https://github.com/EugenMayer/docker-sync/wiki/8.-Strategies) for details.
-```
-# osx: 'native_osx' (default)
-# windows: 'unison'
-# linux: docker-sync not required
-
-DOCKER_SYNC_STRATEGY=native_osx
-```
-
-2) Install the docker-sync gem on the host-machine:
-```bash
-./sync.sh install
-```
-3) Start docker-sync and the Laradock environment. 
-Specify the services you want to run, as you would normally do with `docker-compose up`
-```bash
-./sync.sh up nginx mysql
-```
-Please note that the first time docker-sync runs, it will copy all the files to the intermediate container and that may take a very long time (15min+).
-4) To stop the environment and docker-sync do:
-```bash
-./sync.sh down
-```
-
-#### Setting up Aliases (optional)
-
-You may create bash profile aliases to avoid having to remember and type these commands for everyday development. 
-Add the following lines to your `~/.bash_profile`:
-
-```bash
-alias devup="cd /PATH_TO_LARADOCK/laradock; ./sync.sh up nginx mysql" #add your services
-alias devbash="cd /PATH_TO_LARADOCK/laradock; ./sync.sh bash"
-alias devdown="cd /PATH_TO_LARADOCK/laradock; ./sync.sh down"
-```
-
-Now from any location on your machine, you can simply run `devup`, `devbash` and `devdown`. 
-
-
-#### Additional Commands
- 
-Opening bash on the workspace container (to run artisan for example):
- ```bash
- ./sync.sh bash
- ```
-Manually triggering the synchronization of the files:
-```bash
-./sync.sh sync
-```
-Removing and cleaning up the files and the docker-sync container. Use only if you want to rebuild or remove docker-sync completely. The files on the host will be kept untouched.
-```bash
-./sync.sh clean
-```
-
-**Additional Notes:**
-
-- You may run laradock with or without docker-sync at any time using with the same `.env` and `docker-compose.yml`, because the configuration is overridden automatically when docker-sync is used. 
-- You may inspect the `sync.sh` script to learn each of the commands and even add custom ones.
-- If a container cannot access the files on docker-sync, you may need to set a user on the Dockerfile of that container with an id of 1000 (this is the UID that nginx and php-fpm have configured on laradock). Alternatively, you may change the permissions to 777, but this is **not** recommended.
-
-Visit the [docker-sync documentation](https://github.com/EugenMayer/docker-sync/wiki) for more details.
-
-<br>
 <a name="Add-Docker-Images"></a>
-
 ## Add more Software (Docker Images)
 
 To add an image (software), just edit the `docker-compose.yml` and add your container details, to do so you need to be familiar with the [docker compose file syntax](https://docs.docker.com/compose/compose-file/).
@@ -310,7 +232,7 @@ By default **PHP-FPM 7.0** is running.
     php-fpm:
         build:
             context: ./php-fpm
-            dockerfile: Dockerfile-70
+            dockerfile: Dockerfile-56
     ...
 ```
 
@@ -409,7 +331,7 @@ For information on how to configure xDebug with your IDE and work it out, check 
 <a name="Setup remote debugging for PhpStorm on Linux"></a>
 ## Setup remote debugging for PhpStorm on Linux
 
- - Make sure you have followed the steps above in the [Install Xdebug section](http://laradock.io/documentation/#install-xdebug). 
+ - Make sure you have followed the steps above in the [Install Xdebug section](http://laradock.io/documentation/#install-xdebug).
 
  - Make sure Xdebug accepts connections and listens on port 9000. (Should be default configuration).
 
@@ -509,14 +431,34 @@ To learn more about how Docker publishes ports, please read [this excellent post
 
 
 
+<br>
+<a name="Use-Jenkins"></a>
+## Use Jenkins
+
+1) Boot the container `docker-compose up -d jenkins`. To enter the container type `docker-compose exec jenkins bash`.
+
+2) Go to `http://localhost:8090/` (if you didn't chanhed your default port mapping) 
+
+3) Authenticate from the web app.
+
+- Default username is `admin`.
+- Default password is `docker-compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`. 
+
+(To enter container as root type `docker-compose exec --user root jenkins bash`).
+
+4) Install some plugins.
+
+5) Create your first Admin user, or continue as Admin.
+
+Note: to add user go to `http://localhost:8090/securityRealm/addUser` and to restart it from the web app visit `http://localhost:8090/restart`.
+
+You may wanna change the default security configuration, so go to `http://localhost:8090/configureSecurity/` under Authorization and choosing "Anyone can do anything" or "Project-based Matrix Authorization Strategy" or anything else.
+
+
+
 
 <br>
 <a name="Laravel"></a>
-
-
-
-
-
 
 <a name="Install-Laravel"></a>
 ## Install Laravel from a Docker Container
@@ -619,11 +561,18 @@ b) add a new service container by simply copy-paste this section below PHP-FPM c
 ```yaml
     php-worker:
       build:
-        context: ./php-fpm
-        dockerfile: Dockerfile-70 # or Dockerfile-56, choose your PHP-FPM container setting
+        context: ./php-worker
+        dockerfile: "Dockerfile-${PHP_VERSION}" #Dockerfile-71 or #Dockerfile-70 available
+        args:
+          - INSTALL_PGSQL=${PHP_WORKER_INSTALL_PGSQL} #Optionally install PGSQL PHP drivers
       volumes_from:
         - applications
-      command: php artisan queue:work
+      depends_on:
+        - workspace
+      extra_hosts:
+        - "dockerhost:${DOCKER_HOST_IP}"
+      networks:
+        - backend
 ```
 2 - Start everything up
 
@@ -645,13 +594,15 @@ docker-compose up -d php-worker
 docker-compose up -d redis
 ```
 
+> To execute redis commands, enter the redis container first `docker-compose exec redis bash` then enter the `redis-cli`.
+
 2 - Open your Laravel's `.env` file and set the `REDIS_HOST` to `redis`
 
 ```env
 REDIS_HOST=redis
 ```
 
-If you don't find the `REDIS_HOST` variable in your `.env` file. Go to the database configuration file `config/database.php` and replace the default `127.0.0.1` IP with `redis` for Redis like this:
+If you're using Laravel, and you don't find the `REDIS_HOST` variable in your `.env` file. Go to the database configuration file `config/database.php` and replace the default `127.0.0.1` IP with `redis` for Redis like this:
 
 ```php
 'redis' => [
@@ -891,19 +842,20 @@ docker-compose up -d elasticsearch
 
 2 - Open your browser and visit the localhost on port **9200**:  `http://localhost:9200`
 
+> The default username is `user` and the default password is `changeme`.
 
 ### Install ElasticSearch Plugin
 
-1 - Install the ElasticSearch plugin like [delete-by-query](https://www.elastic.co/guide/en/elasticsearch/plugins/current/plugins-delete-by-query.html).
+1 - Install an ElasticSearch plugin.
 
 ```bash
-docker exec {container-name} /usr/share/elasticsearch/bin/plugin install delete-by-query
+docker-compose exec elasticsearch /usr/share/elasticsearch/bin/plugin install {plugin-name}
 ```
 
 2 - Restart elasticsearch container
 
 ```bash
-docker restart {container-name}
+docker-compose restart elasticsearch
 ```
 
 
@@ -1000,6 +952,44 @@ docker-compose up -d minio
   ```
 
 
+
+<br>
+<a name="Use-AWS"></a>
+## Use AWS
+
+1 - Configure AWS:
+  - make sure to add your SSH keys in aws/ssh_keys folder
+
+2 - Run the Aws Container (`aws`) with the `docker-compose up` command. Example:
+
+```bash
+docker-compose up -d aws
+```
+
+3 - Access the aws container with `docker-compose exec aws bash`
+
+4 - To start using eb cli inside the container, initiaze your project first by doing 'eb init'. Read the [aws eb cli](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-configuration.html) docs for more details.
+
+
+
+<br>
+<a name="Use-Grafana"></a>
+## Use Grafana
+
+1 - Configure Grafana: Change Port using `GRAFANA_PORT` if you wish to. Default is port 3000.
+
+2 - Run the Grafana Container (`grafana`) with the `docker-compose up`command:
+
+```bash
+docker-compose up -d grafana
+```
+
+3 - Open your browser and visit the localhost on port **3000** at the following URL: `http://localhost:3000`
+
+4 - Login using the credentials User = `admin` Passwort = `admin`. Change the password in the webinterface if you want to.
+
+
+
 <br>
 <a name="CodeIgniter"></a>
 
@@ -1024,7 +1014,7 @@ To install CodeIgniter 3 on Laradock all you have to do is the following simple 
 <a name="Install-Symfony"></a>
 ## Install Symfony
 
-1 - Open the `.env` file and set `WORKSPACE_INSTALL_SYMFONY` to `true`. 
+1 - Open the `.env` file and set `WORKSPACE_INSTALL_SYMFONY` to `true`.
 
 2 - Run `docker-compose build workspace`, after the step above.
 
@@ -1032,7 +1022,7 @@ To install CodeIgniter 3 on Laradock all you have to do is the following simple 
 
 4 - Run `docker-compose restart` if the container was already running, before the step above.
 
-5 - Visit `symfony.dev`
+5 - Visit `symfony.test`
 
 <br>
 <a name="Misc"></a>
@@ -1101,9 +1091,6 @@ To change the default forwarded port for ssh:
 			- "2222:22" # Edit this line
     ...
 ```
-
-
-
 
 
 
@@ -1197,21 +1184,21 @@ If you need <a href="#MySQL-access-from-host">MySQL access from your host</a>, d
 <a name="Use-custom-Domain"></a>
 ## Use custom Domain (instead of the Docker IP)
 
-Assuming your custom domain is `laravel.dev`
+Assuming your custom domain is `laravel.test`
 
-1 - Open your `/etc/hosts` file and map your localhost address `127.0.0.1` to the `laravel.dev` domain, by adding the following:
+1 - Open your `/etc/hosts` file and map your localhost address `127.0.0.1` to the `laravel.test` domain, by adding the following:
 
 ```bash
-127.0.0.1    laravel.dev
+127.0.0.1    laravel.test
 ```
 
-2 - Open your browser and visit `{http://laravel.dev}`
+2 - Open your browser and visit `{http://laravel.test}`
 
 
 Optionally you can define the server name in the NGINX configuration file, like this:
 
 ```conf
-server_name laravel.dev;
+server_name laravel.test;
 ```
 
 
@@ -1494,7 +1481,11 @@ Moving from Docker Toolbox (VirtualBox) to Docker Native (for Mac/Windows). Requ
 <a name="Speed-MacOS"></a>
 ## Improve speed on MacOS
 
-Sharing code into Docker containers with osxfs have very poor performance compared to Linux. Likely there are some workarounds:
+Docker on the Mac [is slow](https://github.com/docker/for-mac/issues/77), at the time of writing. Especially for larger projects, this can be a problem. The problem is [older than March 2016](https://forums.docker.com/t/file-access-in-mounted-volumes-extremely-slow-cpu-bound/8076) - as it's a such a long-running issue, we're including it in the docs here.
+
+So since sharing code into Docker containers with osxfs have very poor performance compared to Linux. Likely there are some workarounds:
+
+
 
 ### Workaround A: using dinghy
 
@@ -1514,8 +1505,98 @@ Quick Setup giude, (we recommend you check their docs)
 
 
 
-
+<br>
+<a name="Docker-Sync"></a>
 ### Workaround B: using d4m-nfs
+
+You can use the d4m-nfs solution in 2 ways, one is using the Laradock built it integration, and the other is using the tool separatly. Below is show case of both methods:
+
+
+#### B.1: using the built in d4m-nfs integration
+
+In simple terms, docker-sync creates a docker container with a copy of all the application files that can be accessed very quickly from the other containers.
+On the other hand, docker-sync runs a process on the host machine that continuously tracks and updates files changes from the host to this intermediate container.
+
+Out of the box, it comes pre-configured for OS X, but using it on Windows is very easy to set-up by modifying the `DOCKER_SYNC_STRATEGY` on the `.env`
+
+##### Usage
+
+Laradock comes with `sync.sh`, an optional bash script, that automates installing, running and stopping docker-sync.  Note that to run the bash script you may need to change the permissions `chmod 755 sync.sh`
+
+1) Configure your Laradock environment as you would normally do and test your application to make sure that your sites are running correctly.
+
+2) Make sure to set `DOCKER_SYNC_STRATEGY` on the `.env`. Read the [syncing strategies](https://github.com/EugenMayer/docker-sync/wiki/8.-Strategies) for details.
+```
+# osx: 'native_osx' (default)
+# windows: 'unison'
+# linux: docker-sync not required
+
+DOCKER_SYNC_STRATEGY=native_osx
+```
+
+2) Install the docker-sync gem on the host-machine:
+```bash
+./sync.sh install
+```
+3) Start docker-sync and the Laradock environment.
+Specify the services you want to run, as you would normally do with `docker-compose up`
+```bash
+./sync.sh up nginx mysql
+```
+Please note that the first time docker-sync runs, it will copy all the files to the intermediate container and that may take a very long time (15min+).
+4) To stop the environment and docker-sync do:
+```bash
+./sync.sh down
+```
+
+##### Setting up Aliases (optional)
+
+You may create bash profile aliases to avoid having to remember and type these commands for everyday development.
+Add the following lines to your `~/.bash_profile`:
+
+```bash
+alias devup="cd /PATH_TO_LARADOCK/laradock; ./sync.sh up nginx mysql" #add your services
+alias devbash="cd /PATH_TO_LARADOCK/laradock; ./sync.sh bash"
+alias devdown="cd /PATH_TO_LARADOCK/laradock; ./sync.sh down"
+```
+
+Now from any location on your machine, you can simply run `devup`, `devbash` and `devdown`.
+
+
+##### Additional Commands
+
+Opening bash on the workspace container (to run artisan for example):
+ ```bash
+ ./sync.sh bash
+ ```
+Manually triggering the synchronization of the files:
+```bash
+./sync.sh sync
+```
+Removing and cleaning up the files and the docker-sync container. Use only if you want to rebuild or remove docker-sync completely. The files on the host will be kept untouched.
+```bash
+./sync.sh clean
+```
+
+
+##### Additional Notes
+
+- You may run laradock with or without docker-sync at any time using with the same `.env` and `docker-compose.yml`, because the configuration is overridden automatically when docker-sync is used.
+- You may inspect the `sync.sh` script to learn each of the commands and even add custom ones.
+- If a container cannot access the files on docker-sync, you may need to set a user on the Dockerfile of that container with an id of 1000 (this is the UID that nginx and php-fpm have configured on laradock). Alternatively, you may change the permissions to 777, but this is **not** recommended.
+
+Visit the [docker-sync documentation](https://github.com/EugenMayer/docker-sync/wiki) for more details.
+
+
+
+
+
+
+
+
+<br>
+
+#### B.2: using the d4m-nfs tool
 
 [D4m-nfs](https://github.com/IFSight/d4m-nfs) automatically mount NFS volume instead of osxfs one.
 
@@ -1556,15 +1637,8 @@ docker-compose up ...
 
 
 
-### Other good workarounds:
-
-- [docker-sync](https://github.com/EugenMayer/docker-sync)
-- Add more here..
 
 
-
-
-More details about this issue [here](https://github.com/docker/for-mac/issues/77).
 
 
 
@@ -1651,3 +1725,7 @@ This error sometimes happens because your Laravel application isn't running on t
   2. Change the `DB_HOST` variable on env with the IP that you received from previous step.
 * Option B
    1. Change the `DB_HOST` value to the same name as the MySQL docker container. The Laradock docker-compose file currently has this as `mysql`
+
+## I get stuck when building nginx on `fetch http://mirrors.aliyun.com/alpine/v3.5/main/x86_64/APKINDEX.tar.gz`
+
+As stated on [#749](https://github.com/laradock/laradock/issues/749#issuecomment-293296687), removing the line `RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories` from `nginx/Dockerfile` solves the problem.		

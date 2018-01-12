@@ -3,5 +3,6 @@
 /data
 .env
 /.project
+/jenkins/jenkins_home
 docker-compose.yml
 .docker-sync
