@@ -108,7 +108,7 @@ services:
       expose:
         - "9000"
       depends_on:
-        - workspace
+        - cli
       extra_hosts:
         - "dockerhost:${DOCKER_HOST_IP}"
       environment:
@@ -127,7 +127,7 @@ services:
       volumes_from:
         - applications
       depends_on:
-        - workspace
+        - cli
       extra_hosts:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
@@ -720,7 +720,7 @@ services:
       volumes_from:
         - applications
       depends_on:
-        - workspace
+        - cli
       tty: true
 
 ### Networks Setup ############################################
