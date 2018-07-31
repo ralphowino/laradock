@@ -13,6 +13,7 @@ services:
       image: tianon/true
       depends_on:
          - nginx
+         - ${PMA_DB_ENGINE}
 
 ### Cli Utilities Container ###########################
 
@@ -150,7 +151,7 @@ services:
         - 80
         - 443
       environment:
-        VIRTUAL_HOST: ${MAIN_DOMAIN}
+        VIRTUAL_HOST: ${MAIN_DOMAIN}, *.${MAIN_DOMAIN}
       depends_on:
         - php-fpm
       networks:
@@ -376,7 +377,7 @@ services:
     redis-commander:
       build: ./redis-commander
       environment:
-        - VIRTUAL_HOST=${QUEUE_DOMAIN}
+        - VIRTUAL_HOST=queue.${MAIN_DOMAIN}
       entrypoint: redis-commander --redis-host redis
       ports:
           - 8081

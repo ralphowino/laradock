@@ -2,9 +2,9 @@
 # General Setup
 ###########################################################
 
-COMPOSE_PROJECT_NAME=ralphowino
+COMPOSE_PROJECT_NAME=project_name
 
-MAIN_DOMAIN=ralphowino.dev
+MAIN_DOMAIN=project_name.ralphowino.com
 
 
 ### Application Path ###################################################################################################
@@ -148,9 +148,9 @@ APACHE_SITES_PATH=../data/apache2/sites
 
 ### MYSQL ##############################################################################################################
 
-MYSQL_VERSION=8.0
-MYSQL_DATABASE=default
-MYSQL_USER=default
+MYSQL_VERSION=5.6
+MYSQL_DATABASE=project_name
+MYSQL_USER=homestead
 MYSQL_PASSWORD=secret
 MYSQL_PORT=3306
 MYSQL_ROOT_PASSWORD=root
@@ -162,7 +162,7 @@ REDIS_PORT=6379
 
 ### Percona ############################################################################################################
 
-PERCONA_DATABASE=homestead
+PERCONA_DATABASE=project_name
 PERCONA_USER=homestead
 PERCONA_PASSWORD=secret
 PERCONA_PORT=3306
@@ -171,13 +171,13 @@ PERCONA_ENTRYPOINT_INITDB=./percona/docker-entrypoint-initdb.d
 
 ### MSSQL ##############################################################################################################
 
-MSSQL_DATABASE=homestead
+MSSQL_DATABASE=project_name
 MSSQL_PASSWORD=yourStrong(!)Password
 MSSQL_PORT=1433
 
 ### MARIADB ############################################################################################################
 
-MARIADB_DATABASE=default
+MARIADB_DATABASE=project_name
 MARIADB_USER=homestead
 MARIADB_PASSWORD=secret
 MARIADB_PORT=3306
@@ -186,7 +186,7 @@ MARIADB_ENTRYPOINT_INITDB=./mariadb/docker-entrypoint-initdb.d
 
 ### POSTGRES ###########################################################################################################
 
-POSTGRES_DB=default
+POSTGRES_DB=project_name
 POSTGRES_USER=default
 POSTGRES_PASSWORD=secret
 POSTGRES_PORT=5432
@@ -324,6 +324,7 @@ CADDY_CUSTOM_CADDYFILE=./caddy/Caddyfile
 ### LARAVEL ECHO SERVER ################################################################################################
 
 LARAVEL_ECHO_SERVER_PORT=6001
+ECHO_PATH=../code
 
 ### DOCKER-SYNC ################################################################################################
 
