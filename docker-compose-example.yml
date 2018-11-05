@@ -2,7 +2,8 @@ version: '3'
 
 networks:
   frontend:
-    driver: ${NETWORKS_DRIVER}
+    external:
+      name: nginxproxy_default
   backend:
     driver: ${NETWORKS_DRIVER}
 
@@ -195,7 +196,7 @@ services:
           - INSTALL_BCMATH=${PHP_WORKER_INSTALL_BCMATH}
       volumes:
         - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
-        - ./php-worker/supervisord.d:/etc/supervisord.d
+        - ${DATA_PATH_HOST}/php-worker/supervisord.d:/etc/supervisord.d
       depends_on:
         - cli
       extra_hosts:

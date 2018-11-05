@@ -2,9 +2,9 @@
 ###################### General Setup ######################
 ###########################################################
 
-COMPOSE_PROJECT_NAME=ralphowino
+COMPOSE_PROJECT_NAME=project_name
 
-MAIN_DOMAIN=ralphowino.dev
+MAIN_DOMAIN=project_name.local
 
 
 ### Application Path ###################################################################################################
@@ -12,13 +12,13 @@ MAIN_DOMAIN=ralphowino.dev
 ### Paths #################################################
 
 # Point to the path of your applications code on your host
-APP_CODE_PATH_HOST=../
+APP_CODE_PATH_HOST=../code
 
 # Point to where the `APP_CODE_PATH_HOST` should be in the container. You may add flags to the path `:cached`, `:delegated`. When using Docker Sync add `:nocopy`
 APP_CODE_PATH_CONTAINER=/var/www:cached
 
 # Choose storage path on your machine. For all storage systems
-DATA_PATH_HOST=~/.laradock/data
+DATA_PATH_HOST=../data
 
 ### Drivers ################################################
 
@@ -199,8 +199,8 @@ APACHE_SITES_PATH=../data/apache2/sites
 ### MYSQL #################################################
 
 MYSQL_VERSION=latest
-MYSQL_DATABASE=default
-MYSQL_USER=default
+MYSQL_DATABASE=project_name
+MYSQL_USER=homestead
 MYSQL_PASSWORD=secret
 MYSQL_PORT=3306
 MYSQL_ROOT_PASSWORD=root
@@ -212,7 +212,7 @@ REDIS_PORT=6379
 
 ### Percona ###############################################
 
-PERCONA_DATABASE=homestead
+PERCONA_DATABASE=project_name
 PERCONA_USER=homestead
 PERCONA_PASSWORD=secret
 PERCONA_PORT=3306
@@ -227,7 +227,7 @@ MSSQL_PORT=1433
 
 ### MARIADB ###############################################
 
-MARIADB_DATABASE=default
+MARIADB_DATABASE=project_name
 MARIADB_USER=homestead
 MARIADB_PASSWORD=secret
 MARIADB_PORT=3306
@@ -236,8 +236,8 @@ MARIADB_ENTRYPOINT_INITDB=./mariadb/docker-entrypoint-initdb.d
 
 ### POSTGRES ##############################################
 
-POSTGRES_DB=default
-POSTGRES_USER=default
+POSTGRES_DB=project_name
+POSTGRES_USER=homestead
 POSTGRES_PASSWORD=secret
 POSTGRES_PORT=5432
 POSTGRES_ENTRYPOINT_INITDB=./postgres/docker-entrypoint-initdb.d
