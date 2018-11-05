@@ -57,7 +57,7 @@ services:
 
 ### Workspace Utilities Container ###########################
 
-    workspace:
+    cli:
       build:
         context: ./workspace
         args:
@@ -180,7 +180,7 @@ services:
         - DOCKER_HOST=tcp://docker-in-docker:2375
         - FAKETIME=${PHP_FPM_FAKETIME}
       depends_on:
-        - workspace
+        - cli
       networks:
         - backend
       links:
@@ -446,9 +446,9 @@ services:
     aerospike:
       build: ./aerospike
       volumes_from:
-        - cli
+        - applications
       volumes:
-        - workspace
+        - cli
         - ${DATA_PATH_HOST}/aerospike:/opt/aerospike/data
       ports:
         - 3000
