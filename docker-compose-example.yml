@@ -445,8 +445,6 @@ services:
 
     aerospike:
       build: ./aerospike
-      volumes_from:
-        - applications
       volumes:
         - cli
         - ${DATA_PATH_HOST}/aerospike:/opt/aerospike/data
